@@ -4,83 +4,100 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Camera } from 'lucide-react';
+import { ArrowLeft, Camera, CameraOff, CheckCircle } from 'lucide-react';
+import QrScanner from 'qr-scanner';
 
 const Scanner = () => {
   const { toast } = useToast();
   const [isScanning, setIsScanning] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [scanSuccess, setScanSuccess] = useState(false);
   const [lastScanTime, setLastScanTime] = useState<number>(0);
   const [lastParticipantScanTime, setLastParticipantScanTime] = useState<Record<string, number>>({});
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const qrScannerRef = useRef<QrScanner | null>(null);
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' } // Use rear camera if available
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setIsScanning(true);
-      }
-    } catch (error) {
-      console.error('Camera access error:', error);
+  useEffect(() => {
+      return () => {
+        if (qrScannerRef.current) {
+          qrScannerRef.current.stop();
+          qrScannerRef.current.destroy();
+        }
+      };
+    }, []);
+
+  const startScanning = async () => {
+    if (!videoRef.current) return;
+
+    try{
+       scanQRCode();
+
       toast({
-        title: "Camera Error",
-        description: "Unable to access camera. Please check permissions.",
+        title: "Escaner Activado",
+        description: "Apunta tu cámara al código QR para registrar a los participantes",
+      });
+    } catch (error) {
+      console.error('Error starting scanner:', error);
+      setHasPermission(false);
+      toast({
+        title: "Camera Access Required",
+        description: "Please allow camera access to scan QR codes",
         variant: "destructive",
       });
     }
   };
 
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
+  const stopScanning = () => {
+    if (qrScannerRef.current) {
+      qrScannerRef.current.stop()
+      setIsScanning(false)
+      toast({
+        title: "Escaner Detenido",
+        description: "El escaneo del código QR codese ha detenido.",
+      });
     }
-    setIsScanning(false);
   };
 
   const scanQRCode = async () => {
-    if (!videoRef.current || isProcessing) return;
+   await navigator.mediaDevices.getUserMedia({ video: {
+        facingMode: 'enviroment'
+      }});
+      setHasPermission(true);
 
-    const video = videoRef.current;
-    
-    if (video.videoWidth === 0 || video.videoHeight === 0) return;
-    
-    try {
-      // Import QR scanner library dynamically
-      const QrScanner = (await import('qr-scanner')).default;
-      
-      // Scan directly from video element
-      const result = await QrScanner.scanImage(video);
-      setIsProcessing(true);
-      await handleScannedUUID(result);
-    } catch (error) {
-      // QR code not found or not readable - this is normal, continue scanning
-      console.debug('QR scan attempt:', error);
-    }
+      const qrScanner = new QrScanner(
+        videoRef.current,
+        (result) => handleScannedUUID(result.data),
+        {
+          onDecodeError: () => {
+            // Silently handle decode errors - normal when QR code is not in view
+          },
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          preferredCamera: 'environment',
+        }
+      );
+
+      qrScannerRef.current = qrScanner;
+      await qrScanner.start();
+      setIsScanning(true);
   };
 
   const handleScannedUUID = async (uuid: string) => {
     // Reset success animation
     setScanSuccess(false);
     const now = Date.now();
-    
+
     // Check if at least 3 seconds have passed since last scan
     if (now - lastScanTime < 3000) {
       return;
     }
-    
+
     // Check if this participant was scanned in the last 30 seconds
     if (lastParticipantScanTime[uuid] && now - lastParticipantScanTime[uuid] < 30000) {
       toast({
-        title: "Recent Scan",
-        description: "This participant was already scanned recently. Please wait 30 seconds.",
+        title: "Escaneo Reciente",
+        description: "Este participante ha sido escaneado recientemente. Por favor espere 30 segundos.",
         variant: "destructive",
       });
       return;
@@ -96,8 +113,8 @@ const Scanner = () => {
 
       if (participantError || !participant) {
         toast({
-          title: "Invalid QR Code",
-          description: "This QR code is not valid for this event.",
+          title: "Código QR Inválido",
+          description: "Este código QR no es válido para este evento.",
           variant: "destructive",
         });
         setLastScanTime(now);
@@ -118,7 +135,7 @@ const Scanner = () => {
         console.error('Attendance error:', attendanceError);
         toast({
           title: "Error",
-          description: "Failed to record attendance. Please try again.",
+          description: "Problema al registrar la asistencia. Por favor inténtelo de nuevo.",
           variant: "destructive",
         });
         setIsProcessing(false);
@@ -135,19 +152,19 @@ const Scanner = () => {
       // Show success animation
       setScanSuccess(true);
       setTimeout(() => setScanSuccess(false), 2000);
-      
+
       toast({
-        title: "Check-in Successful!",
-        description: `${participant.full_name} has been checked in.`,
+        title: "¡Registro exitoso!",
+        description: `${participant.full_name} ha sido registrado.`,
       });
-      
+
       setIsProcessing(false);
 
     } catch (error) {
       console.error('Scan handling error:', error);
       toast({
         title: "Error",
-        description: "An error occurred while processing the scan.",
+        description: "Un error ocurrio al procesar el escaneo.",
         variant: "destructive",
       });
       setIsProcessing(false);
@@ -157,11 +174,11 @@ const Scanner = () => {
   // Continuous scanning when camera is active
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    
+
     if (isScanning && videoRef.current) {
       interval = setInterval(scanQRCode, 1000); // Scan every second
     }
-    
+
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -170,7 +187,7 @@ const Scanner = () => {
   // Cleanup camera on unmount
   useEffect(() => {
     return () => {
-      stopCamera();
+      stopScanning();
     };
   }, []);
 
@@ -184,105 +201,70 @@ const Scanner = () => {
               Back to Control
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold text-primary">QR Code Scanner</h1>
+          <h1 className="text-3xl font-bold text-primary">Escáner de Código QR</h1>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Camera className="h-5 w-5" />
-              Event Check-in Scanner
+              <Camera className="h-6 w-6" />
+              Escáner de Asistencia
             </CardTitle>
             <CardDescription>
-              Scan participant QR codes to record attendance
+              Escanea los códigos QR de los participantes para registrar la asistencia.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!isScanning ? (
-              <div className="text-center py-8">
-                <Button onClick={startCamera} size="lg">
-                  <Camera className="h-5 w-5 mr-2" />
-                  Start Camera
+            <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                playsInline
+                muted
+              />
+              {!isScanning && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                  <div className="text-center">
+                    <Camera className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                    <p className="text-gray-600">Camera preview will appear here</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-4 justify-center">
+              {!isScanning ? (
+                <Button
+                  onClick={startScanning}
+                  className="bg-gradient-to-r from-success to-success/90 hover:from-success/90 hover:to-success"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Iniciar Escaneo
                 </Button>
-                <p className="text-sm text-muted-foreground mt-4">
-                  Click to activate the camera and start scanning QR codes
+              ) : (
+                <Button
+                  onClick={stopScanning}
+                  variant="destructive"
+                >
+                  <CameraOff className="w-4 h-4 mr-2" />
+                  Detener Escaneo
+                </Button>
+              )}
+            </div>
+
+            {hasPermission === false && (
+              <div className="text-center p-4 bg-warning/10 rounded-lg">
+                <p className="text-warning-foreground">
+                  Se necesita acceso a la cámara para escanear códigos QR. Por favor permita el acceso a la cámara e intente de nuevo.
                 </p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="relative bg-black rounded-lg overflow-hidden">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full h-96 object-cover"
-                  />
-                  
-                  {/* Scanning overlay with animated targeting frame */}
-                  <div className="absolute inset-0 pointer-events-none">
-                    {/* Dark overlay with cutout */}
-                    <div className="absolute inset-0 bg-black/40">
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64">
-                        <div className="w-full h-full bg-transparent border-2 border-white rounded-2xl relative">
-                          {/* Corner indicators */}
-                          <div className="absolute top-0 left-0 w-8 h-8 border-l-4 border-t-4 border-primary rounded-tl-lg"></div>
-                          <div className="absolute top-0 right-0 w-8 h-8 border-r-4 border-t-4 border-primary rounded-tr-lg"></div>
-                          <div className="absolute bottom-0 left-0 w-8 h-8 border-l-4 border-b-4 border-primary rounded-bl-lg"></div>
-                          <div className="absolute bottom-0 right-0 w-8 h-8 border-r-4 border-b-4 border-primary rounded-br-lg"></div>
-                          
-                          {/* Scanning line animation */}
-                          <div className={`absolute inset-x-0 top-0 h-1 bg-primary/80 rounded-full animate-pulse ${isProcessing ? 'animate-bounce' : ''}`}></div>
-                          
-                          {/* Success animation */}
-                          {scanSuccess && (
-                            <div className="absolute inset-0 bg-green-500/30 rounded-2xl animate-pulse border-4 border-green-500">
-                              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-green-500">
-                                <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Processing indicator */}
-                          {isProcessing && !scanSuccess && (
-                            <div className="absolute inset-0 bg-primary/20 rounded-2xl">
-                              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Status indicator */}
-                  <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/70 text-white px-3 py-2 rounded-lg">
-                    <div className={`w-2 h-2 rounded-full ${isProcessing ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}></div>
-                    <span className="text-sm font-medium">
-                      {isProcessing ? 'Processing...' : 'Ready to scan'}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="flex justify-center">
-                  <Button onClick={stopCamera} variant="outline">
-                    Stop Camera
-                  </Button>
-                </div>
-
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-semibold text-sm mb-2">How to scan:</h4>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• Hold QR code steady within the white frame</li>
-                    <li>• Wait for the green checkmark confirmation</li>
-                    <li>• Same participant: 30 second cooldown</li>
-                    <li>• General scanning: 3 second intervals</li>
-                  </ul>
-                </div>
-              </div>
             )}
+
+            <div className="text-sm text-center text-muted-foreground">
+              <CheckCircle className="w-4 h-4 inline mr-1" />
+              Apunte la cámara al código QR del participante para registrar su asistencia.
+            </div>
+
           </CardContent>
         </Card>
       </div>

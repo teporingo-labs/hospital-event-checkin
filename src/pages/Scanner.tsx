@@ -9,10 +9,11 @@ import { ArrowLeft, Camera } from 'lucide-react';
 const Scanner = () => {
   const { toast } = useToast();
   const [isScanning, setIsScanning] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [scanSuccess, setScanSuccess] = useState(false);
   const [lastScanTime, setLastScanTime] = useState<number>(0);
   const [lastParticipantScanTime, setLastParticipantScanTime] = useState<Record<string, number>>({});
   const videoRef = useRef<HTMLVideoElement>(null);
-  
   const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = async () => {
@@ -45,7 +46,7 @@ const Scanner = () => {
   };
 
   const scanQRCode = async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || isProcessing) return;
 
     const video = videoRef.current;
     
@@ -57,6 +58,7 @@ const Scanner = () => {
       
       // Scan directly from video element
       const result = await QrScanner.scanImage(video);
+      setIsProcessing(true);
       await handleScannedUUID(result);
     } catch (error) {
       // QR code not found or not readable - this is normal, continue scanning
@@ -65,6 +67,8 @@ const Scanner = () => {
   };
 
   const handleScannedUUID = async (uuid: string) => {
+    // Reset success animation
+    setScanSuccess(false);
     const now = Date.now();
     
     // Check if at least 3 seconds have passed since last scan
@@ -97,6 +101,7 @@ const Scanner = () => {
           variant: "destructive",
         });
         setLastScanTime(now);
+        setIsProcessing(false);
         return;
       }
 
@@ -116,6 +121,7 @@ const Scanner = () => {
           description: "Failed to record attendance. Please try again.",
           variant: "destructive",
         });
+        setIsProcessing(false);
         return;
       }
 
@@ -126,10 +132,16 @@ const Scanner = () => {
         [uuid]: now
       }));
 
+      // Show success animation
+      setScanSuccess(true);
+      setTimeout(() => setScanSuccess(false), 2000);
+      
       toast({
         title: "Check-in Successful!",
         description: `${participant.full_name} has been checked in.`,
       });
+      
+      setIsProcessing(false);
 
     } catch (error) {
       console.error('Scan handling error:', error);
@@ -138,6 +150,7 @@ const Scanner = () => {
         description: "An error occurred while processing the scan.",
         variant: "destructive",
       });
+      setIsProcessing(false);
     }
   };
 
@@ -204,12 +217,54 @@ const Scanner = () => {
                     playsInline
                     className="w-full h-96 object-cover"
                   />
-                  <div className="absolute inset-0 border-4 border-primary/50 rounded-lg pointer-events-none">
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-primary rounded-lg"></div>
+                  
+                  {/* Scanning overlay with animated targeting frame */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    {/* Dark overlay with cutout */}
+                    <div className="absolute inset-0 bg-black/40">
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64">
+                        <div className="w-full h-full bg-transparent border-2 border-white rounded-2xl relative">
+                          {/* Corner indicators */}
+                          <div className="absolute top-0 left-0 w-8 h-8 border-l-4 border-t-4 border-primary rounded-tl-lg"></div>
+                          <div className="absolute top-0 right-0 w-8 h-8 border-r-4 border-t-4 border-primary rounded-tr-lg"></div>
+                          <div className="absolute bottom-0 left-0 w-8 h-8 border-l-4 border-b-4 border-primary rounded-bl-lg"></div>
+                          <div className="absolute bottom-0 right-0 w-8 h-8 border-r-4 border-b-4 border-primary rounded-br-lg"></div>
+                          
+                          {/* Scanning line animation */}
+                          <div className={`absolute inset-x-0 top-0 h-1 bg-primary/80 rounded-full animate-pulse ${isProcessing ? 'animate-bounce' : ''}`}></div>
+                          
+                          {/* Success animation */}
+                          {scanSuccess && (
+                            <div className="absolute inset-0 bg-green-500/30 rounded-2xl animate-pulse border-4 border-green-500">
+                              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-green-500">
+                                <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Processing indicator */}
+                          {isProcessing && !scanSuccess && (
+                            <div className="absolute inset-0 bg-primary/20 rounded-2xl">
+                              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Status indicator */}
+                  <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/70 text-white px-3 py-2 rounded-lg">
+                    <div className={`w-2 h-2 rounded-full ${isProcessing ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}></div>
+                    <span className="text-sm font-medium">
+                      {isProcessing ? 'Processing...' : 'Ready to scan'}
+                    </span>
                   </div>
                 </div>
-                
-                
                 
                 <div className="flex justify-center">
                   <Button onClick={stopCamera} variant="outline">
@@ -218,12 +273,12 @@ const Scanner = () => {
                 </div>
 
                 <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-semibold text-sm mb-2">Scanning Rules:</h4>
+                  <h4 className="font-semibold text-sm mb-2">How to scan:</h4>
                   <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• Same participant can only be scanned once every 30 seconds</li>
-                    <li>• Minimum 3 seconds between any QR code scans</li>
-                    <li>• Invalid QR codes will show an error message</li>
-                    <li>• Point camera at QR code within the frame</li>
+                    <li>• Hold QR code steady within the white frame</li>
+                    <li>• Wait for the green checkmark confirmation</li>
+                    <li>• Same participant: 30 second cooldown</li>
+                    <li>• General scanning: 3 second intervals</li>
                   </ul>
                 </div>
               </div>

@@ -63,6 +63,7 @@ const Registration = () => {
             phone: data.phone || null,
             organization: data.organization || null,
             qr_code: qrCodeDataUrl,
+            category: data.category,
           }
         ])
         .select()
@@ -181,7 +182,7 @@ const Registration = () => {
       <img src={chmh} alt="Centenario Hospital Miguel Hidalgo" className="h-16 mb-4" />
       <Card className="w-full max-w-md" style={{ backgroundColor: '#f7f7f7' }}>
         <CardHeader className='items-center'>          
-          <img src={seguridad} alt="Centenario Hospital Miguel Hidalgo" className="w-[254px] h-auto" />
+          <img src={seguridad} alt="Día Mundial de la Seguridad del Paciente" className="w-[254px] h-auto" />
           <CardTitle className="text-2xl text-center text-primary">Cuidados seguros para todos los recien nacidos y todos los niños</CardTitle>
           <CardDescription className="text-center">
             Formulario de Registro <br/><small>Todos los campos son obligatorios</small>

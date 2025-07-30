@@ -31,7 +31,8 @@ const Scanner = () => {
     if (!videoRef.current) return;
 
     try{
-       scanQRCode();
+       await scanQRCode(); // Add await here
+       setIsScanning(true); // Move this here from scanQRCode
 
       toast({
         title: "Escaner Activado",
@@ -51,39 +52,52 @@ const Scanner = () => {
   const stopScanning = () => {
     if (qrScannerRef.current) {
       qrScannerRef.current.stop()
+      qrScannerRef.current.destroy();
+      qrScannerRef.current = null;
       setIsScanning(false)
       toast({
         title: "Escaner Detenido",
-        description: "El escaneo del código QR codese ha detenido.",
+        description: "El escaneo del código QR se ha detenido.",
       });
     }
   };
 
   const scanQRCode = async () => {
-   await navigator.mediaDevices.getUserMedia({ video: {
-        facingMode: 'enviroment'
-      }});
-      setHasPermission(true);
+    try {
+        await navigator.mediaDevices.getUserMedia({ 
+            video: {
+                facingMode: 'environment' // Fix typo from 'enviroment'
+            }
+        });
+        setHasPermission(true);
 
-      const qrScanner = new QrScanner(
-        videoRef.current,
-        (result) => handleScannedUUID(result.data),
-        {
-          onDecodeError: () => {
-            // Silently handle decode errors - normal when QR code is not in view
-          },
-          highlightScanRegion: true,
-          highlightCodeOutline: true,
-          preferredCamera: 'environment',
-        }
-      );
+        const qrScanner = new QrScanner(
+            videoRef.current,
+            (result) => handleScannedUUID(result.data),
+            {
+                onDecodeError: () => {
+                    // Silently handle decode errors - normal when QR code is not in view
+                },
+                highlightScanRegion: true,
+                highlightCodeOutline: true,
+                preferredCamera: 'environment',
+            }
+        );
 
-      qrScannerRef.current = qrScanner;
-      await qrScanner.start();
-      setIsScanning(true);
+        qrScannerRef.current = qrScanner;
+        await qrScanner.start();
+        // setIsScanning(true); // Moved to startScanning
+    } catch (error) {
+        setHasPermission(false);
+        setIsScanning(false);
+        throw error;
+    }
   };
 
   const handleScannedUUID = async (uuid: string) => {
+    if (isProcessing) return; // Prevent multiple concurrent scans
+    setIsProcessing(true);
+    
     // Reset success animation
     setScanSuccess(false);
     const now = Date.now();
@@ -172,18 +186,7 @@ const Scanner = () => {
   };
 
   // Continuous scanning when camera is active
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    if (isScanning && videoRef.current) {
-      interval = setInterval(scanQRCode, 1000); // Scan every second
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isScanning]);
-
+  
   // Cleanup camera on unmount
   useEffect(() => {
     return () => {
@@ -226,9 +229,12 @@ const Scanner = () => {
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                   <div className="text-center">
                     <Camera className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600">Camera preview will appear here</p>
+                    <p className="text-gray-600">La vista previa de la cámara aparecerá aquí</p>
                   </div>
                 </div>
+              )}
+              {scanSuccess && (
+                <div className="absolute inset-0 bg-green-500/30 animate-pulse rounded-lg pointer-events-none" />
               )}
             </div>
 

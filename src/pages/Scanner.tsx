@@ -51,7 +51,7 @@ const Scanner = () => {
     const video = videoRef.current;
     const context = canvas.getContext('2d');
     
-    if (!context) return;
+    if (!context || video.videoWidth === 0 || video.videoHeight === 0) return;
 
     // Set canvas size to match video
     canvas.width = video.videoWidth;
@@ -66,7 +66,7 @@ const Scanner = () => {
       const codeReader = new BrowserQRCodeReader();
       
       // Create a data URL from canvas and decode
-      const dataUrl = canvas.toDataURL();
+      const dataUrl = canvas.toDataURL('image/png');
       const img = new Image();
       img.onload = async () => {
         try {
@@ -75,11 +75,13 @@ const Scanner = () => {
           await handleScannedUUID(scannedUUID);
         } catch (error) {
           // QR code not found or not readable - this is normal, continue scanning
+          console.debug('QR scan attempt:', error);
         }
       };
       img.src = dataUrl;
     } catch (error) {
       // Library import error or other issues
+      console.error('Scanner library error:', error);
     }
   };
 

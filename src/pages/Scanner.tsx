@@ -19,20 +19,20 @@ const Scanner = () => {
   const qrScannerRef = useRef<QrScanner | null>(null);
 
   useEffect(() => {
-      return () => {
-        if (qrScannerRef.current) {
-          qrScannerRef.current.stop();
-          qrScannerRef.current.destroy();
-        }
-      };
-    }, []);
+    return () => {
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop();
+        qrScannerRef.current.destroy();
+      }
+    };
+  }, []);
 
   const startScanning = async () => {
     if (!videoRef.current) return;
 
-    try{
-       await scanQRCode(); // Add await here
-       setIsScanning(true); // Move this here from scanQRCode
+    try {
+      await scanQRCode(); // Add await here
+      setIsScanning(true); // Move this here from scanQRCode
 
       toast({
         title: "Escaner Activado",
@@ -64,42 +64,55 @@ const Scanner = () => {
 
   const scanQRCode = async () => {
     try {
-        await navigator.mediaDevices.getUserMedia({ 
-            video: {
-                facingMode: 'environment' // Fix typo from 'enviroment'
-            }
-        });
-        setHasPermission(true);
+      await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment'
+        }
+      });
+      setHasPermission(true);
 
-        const qrScanner = new QrScanner(
-            videoRef.current,
-            (result) => handleScannedUUID(result.data),
-            {
-                onDecodeError: () => {
-                    // Silently handle decode errors - normal when QR code is not in view
-                },
-                highlightScanRegion: true,
-                highlightCodeOutline: true,
-                preferredCamera: 'environment',
-            }
-        );
+      const qrScanner = new QrScanner(
+        videoRef.current,
+        async (result) => {
+          if (isProcessing) {
+            return; // Ignora si ya se está procesando otro QR
+          }
 
-        qrScannerRef.current = qrScanner;
-        await qrScanner.start();
-        // setIsScanning(true); // Moved to startScanning
+          // Pausar escaneo mientras se procesa
+          qrScanner.stop();
+
+          await handleScannedUUID(result.data);
+
+          // Espera un momento antes de reanudar el escaneo
+          setTimeout(() => {
+          qrScanner.start().catch((err) => {
+            console.error("Error al reiniciar el escaneo:", err);
+          });
+        }, 3000); // 3 segundos de pausa
+        },
+        {
+          onDecodeError: () => {
+            // Normal, no pasa nada si falla el escaneo de vez en cuando
+          },
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          preferredCamera: 'environment',
+        }
+      );
+
+      qrScannerRef.current = qrScanner;
+      await qrScanner.start();
     } catch (error) {
-        setHasPermission(false);
-        setIsScanning(false);
-        throw error;
+      setHasPermission(false);
+      setIsScanning(false);
+      throw error;
     }
   };
 
+
   const handleScannedUUID = async (uuid: string) => {
     if (isProcessing) return; // Prevent multiple concurrent scans
-    setIsProcessing(true);
-    
-    // Reset success animation
-    setScanSuccess(false);
+
     const now = Date.now();
 
     // Check if at least 3 seconds have passed since last scan
@@ -116,6 +129,9 @@ const Scanner = () => {
       });
       return;
     }
+
+    setIsProcessing(true);
+    setScanSuccess(false);
 
     try {
       // Check if participant exists
@@ -186,7 +202,7 @@ const Scanner = () => {
   };
 
   // Continuous scanning when camera is active
-  
+
   // Cleanup camera on unmount
   useEffect(() => {
     return () => {

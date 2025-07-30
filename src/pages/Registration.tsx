@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import QRCode from 'qrcode';
-import ReCAPTCHA from 'react-google-recaptcha';
 
 interface RegistrationForm {
   fullName: string;
@@ -21,19 +20,9 @@ const Registration = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [participantData, setParticipantData] = useState<any>(null);
 
   const onSubmit = async (data: RegistrationForm) => {
-    if (!captchaToken) {
-      toast({
-        title: "Error",
-        description: "Please complete the CAPTCHA verification.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
       // Generate unique ID for participant
@@ -97,7 +86,6 @@ const Registration = () => {
       setQrCodeUrl(qrCodeDataUrl);
       setParticipantData(participant);
       reset();
-      setCaptchaToken(null);
 
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -233,15 +221,7 @@ const Registration = () => {
               />
             </div>
 
-            <div className="flex justify-center py-4">
-              <ReCAPTCHA
-                sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" // Test key - replace with actual key
-                onChange={(token) => setCaptchaToken(token)}
-                onExpired={() => setCaptchaToken(null)}
-              />
-            </div>
-
-            <Button type="submit" disabled={isLoading || !captchaToken} className="w-full">
+            <Button type="submit" disabled={isLoading} className="w-full">
               {isLoading ? 'Registering...' : 'Register for Event'}
             </Button>
           </form>

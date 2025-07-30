@@ -18,17 +18,20 @@ export type Database = {
         Row: {
           id: string
           participant_id: string
-          timestamp: string
+          check_in: string
+          check_out: string
         }
         Insert: {
           id?: string
           participant_id: string
-          timestamp?: string
+          check_in?: string
+          check_out?: string | null
         }
         Update: {
           id?: string
           participant_id?: string
-          timestamp?: string
+          check_in?: string
+          check_out?: string | null
         }
         Relationships: [
           {
@@ -49,6 +52,7 @@ export type Database = {
           organization: string | null
           phone: string | null
           qr_code: string
+          category: string
         }
         Insert: {
           created_at?: string
@@ -58,6 +62,7 @@ export type Database = {
           organization?: string | null
           phone?: string | null
           qr_code: string
+          category: string
         }
         Update: {
           created_at?: string
@@ -67,6 +72,7 @@ export type Database = {
           organization?: string | null
           phone?: string | null
           qr_code?: string
+          category: string
         }
         Relationships: []
       }

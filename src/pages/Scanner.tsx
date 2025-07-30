@@ -109,7 +109,6 @@ const Scanner = () => {
     }
   };
 
-
   const handleScannedUUID = async (uuid: string) => {
     if (isProcessing) return; // Prevent multiple concurrent scans
 
@@ -152,8 +151,20 @@ const Scanner = () => {
         return;
       }
 
-      // Record attendance
-      const { error: attendanceError } = await supabase
+      // Get more recent attendance record
+      const { data: latest, error: fetchError } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('participant_id', uuid)
+      .order('check_in', { ascending: false})
+      .limit(1)
+      .maybeSingle();
+
+      let toasMessage = "";
+
+      if (!latest) {
+        // No records -> Create record
+        const { error: insertError } = await supabase
         .from('attendance')
         .insert([
           {
@@ -161,8 +172,8 @@ const Scanner = () => {
           }
         ]);
 
-      if (attendanceError) {
-        console.error('Attendance error:', attendanceError);
+        if (insertError) {
+          console.error('Attendance error:', insertError);
         toast({
           title: "Error",
           description: "Problema al registrar la asistencia. Por favor inténtelo de nuevo.",
@@ -170,6 +181,43 @@ const Scanner = () => {
         });
         setIsProcessing(false);
         return;
+        }
+        toasMessage = `La entrada de ${participant.full_name} ha sido registrada.`;
+      } else if (!latest.check_out) {
+        // There's check-in but not check-out -> record check-out
+        const { error: updateError } = await supabase
+        .from('attendance')
+        .update({ check_out: new Date().toISOString() })
+        .eq('id', latest.id);
+        if (updateError) {
+          console.error('Attendance error:', updateError);
+        toast({
+          title: "Error",
+          description: "Problema al registrar la salida. Por favor inténtelo de nuevo.",
+          variant: "destructive",
+        });
+        setIsProcessing(false);
+        return;
+        }
+        toasMessage = `La salida de ${participant.full_name} ha sido registrada.`;
+      } else {
+        const { error: newEntryError } = await supabase
+        .from('attendance')
+        .insert([
+          {
+            participant_id: uuid,
+          }
+        ]);
+        if (newEntryError) {
+          console.error('Attendance error:', newEntryError);
+        toast({
+          title: "Error",
+          description: "Problema al registrar la asistencia. Por favor inténtelo de nuevo.",
+          variant: "destructive",
+        });
+        setIsProcessing(false);
+        return;
+        }
       }
 
       // Update scan times
@@ -185,7 +233,7 @@ const Scanner = () => {
 
       toast({
         title: "¡Registro exitoso!",
-        description: `${participant.full_name} ha sido registrado.`,
+        description: `${toasMessage}`,
       });
 
       setIsProcessing(false);

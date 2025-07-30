@@ -70,7 +70,7 @@ const Control = () => {
       console.error('Data fetch error:', error);
       toast({
         title: "Error",
-        description: "Failed to load data. Please refresh the page.",
+        description: "Problemas al cargar los datos. Por favor actualice la página.",
         variant: "destructive",
       });
     } finally {
@@ -93,39 +93,39 @@ const Control = () => {
 
   const exportParticipantsCSV = () => {
     const csvData = participants.map(p => ({
-      'Full Name': p.full_name,
+      'Nombre Completo': p.full_name,
       'Email': p.email,
-      'Phone': p.phone || '',
+      'Teléfono': p.phone || '',
       'Organization': p.organization || '',
-      'Registration Date': new Date(p.created_at).toLocaleString()
+      'Fecha de Registro': new Date(p.created_at).toLocaleString()
     }));
 
     const ws = XLSX.utils.json_to_sheet(csvData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Participants');
-    XLSX.writeFile(wb, 'participants.csv');
+    XLSX.utils.book_append_sheet(wb, ws, 'Participantes');
+    XLSX.writeFile(wb, 'participantes.csv');
   };
 
   const exportParticipantsExcel = () => {
     const excelData = participants.map(p => ({
-      'Full Name': p.full_name,
+      'Nombre Completo': p.full_name,
       'Email': p.email,
-      'Phone': p.phone || '',
+      'Teléfono': p.phone || '',
       'Organization': p.organization || '',
-      'Registration Date': new Date(p.created_at).toLocaleString()
+      'Fecha de Registro': new Date(p.created_at).toLocaleString()
     }));
 
     const ws = XLSX.utils.json_to_sheet(excelData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Participants');
-    XLSX.writeFile(wb, 'participants.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, 'Participantes');
+    XLSX.writeFile(wb, 'participantes.xlsx');
   };
 
   const exportParticipantsPDF = () => {
     const doc = new jsPDF();
     
     doc.setFontSize(16);
-    doc.text('Event Participants', 20, 20);
+    doc.text('Participantes del Evento', 20, 20);
     
     let y = 40;
     doc.setFontSize(10);
@@ -138,49 +138,49 @@ const Control = () => {
       
       doc.text(`${index + 1}. ${participant.full_name}`, 20, y);
       doc.text(`Email: ${participant.email}`, 30, y + 5);
-      if (participant.phone) doc.text(`Phone: ${participant.phone}`, 30, y + 10);
+      if (participant.phone) doc.text(`Teléfono: ${participant.phone}`, 30, y + 10);
       if (participant.organization) doc.text(`Organization: ${participant.organization}`, 30, y + 15);
-      doc.text(`Registered: ${new Date(participant.created_at).toLocaleDateString()}`, 30, y + 20);
+      doc.text(`Registrado el: ${new Date(participant.created_at).toLocaleDateString()}`, 30, y + 20);
       
       y += 30;
     });
     
-    doc.save('participants.pdf');
+    doc.save('participantes.pdf');
   };
 
   const exportAttendanceCSV = () => {
     const csvData = attendance.map(a => ({
-      'Participant Name': a.participants.full_name,
+      'Participante': a.participants.full_name,
       'Email': a.participants.email,
       'Organization': a.participants.organization || '',
-      'Check-in Time': new Date(a.timestamp).toLocaleString()
+      'Hora de Entrada': new Date(a.timestamp).toLocaleString()
     }));
 
     const ws = XLSX.utils.json_to_sheet(csvData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
-    XLSX.writeFile(wb, 'attendance.csv');
+    XLSX.utils.book_append_sheet(wb, ws, 'Asistencia');
+    XLSX.writeFile(wb, 'asistencia.csv');
   };
 
   const exportAttendanceExcel = () => {
     const excelData = attendance.map(a => ({
-      'Participant Name': a.participants.full_name,
+      'Participante': a.participants.full_name,
       'Email': a.participants.email,
       'Organization': a.participants.organization || '',
-      'Check-in Time': new Date(a.timestamp).toLocaleString()
+      'Hora de Entrada': new Date(a.timestamp).toLocaleString()
     }));
 
     const ws = XLSX.utils.json_to_sheet(excelData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
-    XLSX.writeFile(wb, 'attendance.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, 'Asistencia');
+    XLSX.writeFile(wb, 'asistencia.xlsx');
   };
 
   const exportAttendancePDF = () => {
     const doc = new jsPDF();
     
     doc.setFontSize(16);
-    doc.text('Event Attendance', 20, 20);
+    doc.text('Asistencia del evento', 20, 20);
     
     let y = 40;
     doc.setFontSize(10);
@@ -194,12 +194,12 @@ const Control = () => {
       doc.text(`${index + 1}. ${record.participants.full_name}`, 20, y);
       doc.text(`Email: ${record.participants.email}`, 30, y + 5);
       if (record.participants.organization) doc.text(`Organization: ${record.participants.organization}`, 30, y + 10);
-      doc.text(`Check-in: ${new Date(record.timestamp).toLocaleString()}`, 30, y + 15);
+      doc.text(`Entrada: ${new Date(record.timestamp).toLocaleString()}`, 30, y + 15);
       
       y += 25;
     });
     
-    doc.save('attendance.pdf');
+    doc.save('asistencia.pdf');
   };
 
   if (isLoading) {
@@ -207,7 +207,7 @@ const Control = () => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading event data...</p>
+          <p className="text-muted-foreground">Cargando datos del evento...</p>
         </div>
       </div>
     );
@@ -217,11 +217,11 @@ const Control = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-primary">Event Control Panel</h1>
+          <h1 className="text-3xl font-bold text-primary">Panel de Control</h1>
           <Link to="/scanner">
             <Button>
               <QrCode className="h-4 w-4 mr-2" />
-              Open QR Scanner
+              Abrir Escáner QR
             </Button>
           </Link>
         </div>
@@ -230,26 +230,26 @@ const Control = () => {
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Participants</CardTitle>
+              <CardTitle className="text-sm font-medium">Participantes Totales</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{participants.length}</div>
               <p className="text-xs text-muted-foreground">
-                Registered for the event
+                Registrados para el evento
               </p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Attendance</CardTitle>
+              <CardTitle className="text-sm font-medium">Asistencia Total</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{attendance.length}</div>
               <p className="text-xs text-muted-foreground">
-                Check-ins recorded
+                Entradas registradas
               </p>
             </CardContent>
           </Card>
@@ -260,9 +260,9 @@ const Control = () => {
           <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <CardTitle>Registered Participants</CardTitle>
+                <CardTitle>Participantes Registrados</CardTitle>
                 <CardDescription>
-                  All participants registered for the event
+                  Todos los participantes registrados
                 </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -286,12 +286,12 @@ const Control = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
+                    <TableHead>Nombre</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
+                    <TableHead>Teléfono</TableHead>
                     <TableHead>Organization</TableHead>
-                    <TableHead>Registered</TableHead>
-                    <TableHead>QR Code</TableHead>
+                    <TableHead>Registrado</TableHead>
+                    <TableHead>Código QR</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -324,9 +324,9 @@ const Control = () => {
           <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <CardTitle>Attendance Log</CardTitle>
+                <CardTitle>Registro de Asistencia</CardTitle>
                 <CardDescription>
-                  All check-ins recorded during the event
+                  Todas las entradas registradas durante el evento
                 </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -350,10 +350,10 @@ const Control = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Participant</TableHead>
+                    <TableHead>Participante</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Organization</TableHead>
-                    <TableHead>Check-in Time</TableHead>
+                    <TableHead>Hora de Entrada</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

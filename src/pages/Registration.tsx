@@ -56,7 +56,7 @@ const Registration = () => {
 
       if (error) {
         console.error('Database error:', error);
-        throw new Error('Failed to save registration data');
+        throw new Error('Error al guardar los datos de registro.');
       }
 
       // Send QR code via email
@@ -72,14 +72,14 @@ const Registration = () => {
         console.error('Email error:', emailResponse.error);
         // Don't fail the registration if email fails
         toast({
-          title: "Registration Successful",
-          description: "Registration completed, but there was an issue sending the email. Your QR code is shown below.",
+          title: "Registro Exitoso",
+          description: "Se completó el registro, pero hubo un problema envíando el email. Tu código QR se muestra en la pantalla.",
           variant: "default",
         });
       } else {
         toast({
-          title: "Registration Successful!",
-          description: "Your QR code has been generated and sent to your email.",
+          title: "¡Registro Exitoso!",
+          description: "Tu código QR se ha generado y se ha enviado a tu email.",
         });
       }
 
@@ -90,8 +90,8 @@ const Registration = () => {
     } catch (error: any) {
       console.error('Registration error:', error);
       toast({
-        title: "Registration Failed",
-        description: error.message || "An error occurred during registration.",
+        title: "Registro Fallido",
+        description: error.message || "Ocurrio un error durante el registro.",
         variant: "destructive",
       });
     } finally {
@@ -120,9 +120,9 @@ const Registration = () => {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-primary">Registration Complete!</CardTitle>
+            <CardTitle className="text-2xl text-primary">¡Registro Completo!</CardTitle>
             <CardDescription>
-              Welcome to the Hospital Academic Event, {participantData.full_name}
+              Bienvenido al Evento X, {participantData.full_name}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -133,26 +133,26 @@ const Registration = () => {
                 className="mx-auto border-2 border-border rounded-lg p-4 bg-white"
               />
               <p className="text-sm text-muted-foreground mt-2">
-                Your unique QR code for event check-in
+                Tu código QR único para el registro de asistencia en el evento
               </p>
             </div>
             
             <div className="space-y-4">
               <Button onClick={downloadQRCode} className="w-full">
-                Download QR Code
+                Descargar Código QR
               </Button>
               <Button onClick={startNewRegistration} variant="outline" className="w-full">
-                Register Another Participant
+                Registrar otro participante
               </Button>
             </div>
 
             <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-semibold text-sm mb-2">Important Instructions:</h4>
+              <h4 className="font-semibold text-sm mb-2">Instrucciones Importantes:</h4>
               <ul className="text-xs text-muted-foreground space-y-1">
-                <li>• Save this QR code to your phone or print it</li>
-                <li>• Bring it with you to the event</li>
-                <li>• Present it at check-in for quick registration</li>
-                <li>• Check your email for a copy</li>
+                <li>• Guarda este código QR en tu teléfono o imprímelo</li>
+                <li>• Llévalo contigo al evento</li>
+                <li>• Preséntalo al momento del registro para una entrada rápida</li>
+                <li>• Revisa tu correo electrónico para una copia</li>
               </ul>
             </div>
           </CardContent>
@@ -165,19 +165,19 @@ const Registration = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl text-center text-primary">Event Registration</CardTitle>
+          <CardTitle className="text-2xl text-center text-primary">Registro</CardTitle>
           <CardDescription className="text-center">
-            Register for the Hospital Academic Event
+            Regístrate para el Evento X
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name *</Label>
+              <Label htmlFor="fullName">Nombre completo *</Label>
               <Input
                 id="fullName"
-                {...register('fullName', { required: 'Full name is required' })}
-                placeholder="Enter your full name"
+                {...register('fullName', { required: 'El campo Nombre completo es obligatorio' })}
+                placeholder="Ingresa tu nombre completo"
               />
               {errors.fullName && (
                 <p className="text-sm text-destructive">{errors.fullName.message}</p>
@@ -190,13 +190,13 @@ const Registration = () => {
                 id="email"
                 type="email"
                 {...register('email', { 
-                  required: 'Email is required',
+                  required: 'El Email es obligatorio',
                   pattern: {
                     value: /\S+@\S+\.\S+/,
-                    message: 'Please enter a valid email address'
+                    message: 'Por favor ingrese una dirección de correo válida.'
                   }
                 })}
-                placeholder="Enter your email"
+                placeholder="Ingresa tu Email"
               />
               {errors.email && (
                 <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -204,11 +204,11 @@ const Registration = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone (optional)</Label>
+              <Label htmlFor="phone">Teléfono (opcional)</Label>
               <Input
                 id="phone"
                 {...register('phone')}
-                placeholder="Enter your phone number"
+                placeholder="Ingresa tu número de teléfono"
               />
             </div>
 

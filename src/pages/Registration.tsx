@@ -131,13 +131,13 @@ const Registration = () => {
 
   if (qrCodeUrl && participantData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+        <img src={chmh} alt="Centenario Hospital Miguel Hidalgo" className="h-16 mb-4" />
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">            
             <CardTitle className="text-2xl text-primary">¡Registro Completo!</CardTitle>
             <CardDescription>
-              Bienvenido al Evento X, {participantData.full_name}
+              Te esperamos el 17 de Septiembre, {participantData.full_name}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

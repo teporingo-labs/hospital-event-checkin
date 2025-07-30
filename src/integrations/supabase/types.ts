@@ -14,7 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance: {
+        Row: {
+          id: string
+          participant_id: string
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          participant_id: string
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          participant_id?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participants: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          organization: string | null
+          phone: string | null
+          qr_code: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          organization?: string | null
+          phone?: string | null
+          qr_code: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          organization?: string | null
+          phone?: string | null
+          qr_code?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

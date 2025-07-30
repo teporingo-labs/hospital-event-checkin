@@ -239,7 +239,7 @@ const Registration = () => {
             </div>
 
             <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? 'Registering...' : 'Register for Event'}
+              {isLoading ? 'Registrando...' : 'Regístrame'}
             </Button>
           </form>
         </CardContent>

@@ -7,13 +7,27 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import QRCode from 'qrcode';
+import seguridad from '@/assets/DiaMundialSeguridadPaciente.jpg';
+import chmh from '@/assets/CHMHGigante2025.png'
+import { Select, SelectContent, SelectItem, SelectValue } from '@radix-ui/react-select';
+import { SelectTrigger } from '@/components/ui/select';
 
 interface RegistrationForm {
   fullName: string;
   email: string;
-  phone?: string;
-  organization?: string;
+  phone: string;
+  organization: string;
+  category: string;
 }
+
+const categories = [
+  "Médico",
+  "Enfermera",
+  "Estudiante Enfermería",
+  "Residente o Interno",
+  "Pasante Enfermería",
+  "Apoyo Administrativo"
+]
 
 const Registration = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<RegistrationForm>();
@@ -118,8 +132,9 @@ const Registration = () => {
   if (qrCodeUrl && participantData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        
         <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
+          <CardHeader className="text-center">            
             <CardTitle className="text-2xl text-primary">¡Registro Completo!</CardTitle>
             <CardDescription>
               Bienvenido al Evento X, {participantData.full_name}
@@ -162,18 +177,20 @@ const Registration = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center text-primary">Registro</CardTitle>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+      <img src={chmh} alt="Centenario Hospital Miguel Hidalgo" className="h-16 mb-4" />
+      <Card className="w-full max-w-md" style={{ backgroundColor: '#f7f7f7' }}>
+        <CardHeader className='items-center'>          
+          <img src={seguridad} alt="Centenario Hospital Miguel Hidalgo" className="w-[254px] h-auto" />
+          <CardTitle className="text-2xl text-center text-primary">Cuidados seguros para todos los recien nacidos y todos los niños</CardTitle>
           <CardDescription className="text-center">
-            Regístrate para el Evento X
+            Formulario de Registro <br/><small>Todos los campos son obligatorios</small>
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Nombre completo *</Label>
+              <Label htmlFor="fullName">Nombre completo <small>(Sin abreviaturas)</small></Label>
               <Input
                 id="fullName"
                 {...register('fullName', { required: 'El campo Nombre completo es obligatorio' })}
@@ -185,7 +202,7 @@ const Registration = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -204,7 +221,7 @@ const Registration = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Teléfono (opcional)</Label>
+              <Label htmlFor="phone">Teléfono</Label>
               <Input
                 id="phone"
                 {...register('phone')}
@@ -213,11 +230,11 @@ const Registration = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="organization">Organization (optional)</Label>
+              <Label htmlFor="organization">Institución</Label>
               <Input
                 id="organization"
                 {...register('organization')}
-                placeholder="Enter your organization"
+                placeholder="Ingresa tu institución de procedencia"
               />
             </div>
 

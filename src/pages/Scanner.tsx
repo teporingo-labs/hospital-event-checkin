@@ -12,7 +12,7 @@ const Scanner = () => {
   const [lastScanTime, setLastScanTime] = useState<number>(0);
   const [lastParticipantScanTime, setLastParticipantScanTime] = useState<Record<string, number>>({});
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
   const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = async () => {
@@ -45,43 +45,22 @@ const Scanner = () => {
   };
 
   const scanQRCode = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current) return;
 
-    const canvas = canvasRef.current;
     const video = videoRef.current;
-    const context = canvas.getContext('2d');
     
-    if (!context || video.videoWidth === 0 || video.videoHeight === 0) return;
-
-    // Set canvas size to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Draw video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (video.videoWidth === 0 || video.videoHeight === 0) return;
     
     try {
-      // Import QR code scanner library dynamically
-      const { BrowserQRCodeReader } = await import('@zxing/library');
-      const codeReader = new BrowserQRCodeReader();
+      // Import QR scanner library dynamically
+      const QrScanner = (await import('qr-scanner')).default;
       
-      // Create a data URL from canvas and decode
-      const dataUrl = canvas.toDataURL('image/png');
-      const img = new Image();
-      img.onload = async () => {
-        try {
-          const result = await codeReader.decodeFromImageElement(img);
-          const scannedUUID = result.getText();
-          await handleScannedUUID(scannedUUID);
-        } catch (error) {
-          // QR code not found or not readable - this is normal, continue scanning
-          console.debug('QR scan attempt:', error);
-        }
-      };
-      img.src = dataUrl;
+      // Scan directly from video element
+      const result = await QrScanner.scanImage(video);
+      await handleScannedUUID(result);
     } catch (error) {
-      // Library import error or other issues
-      console.error('Scanner library error:', error);
+      // QR code not found or not readable - this is normal, continue scanning
+      console.debug('QR scan attempt:', error);
     }
   };
 
@@ -230,7 +209,7 @@ const Scanner = () => {
                   </div>
                 </div>
                 
-                <canvas ref={canvasRef} className="hidden" />
+                
                 
                 <div className="flex justify-center">
                   <Button onClick={stopCamera} variant="outline">

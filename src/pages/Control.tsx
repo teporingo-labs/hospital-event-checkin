@@ -17,16 +17,20 @@ interface Participant {
   organization?: string;
   qr_code: string;
   created_at: string;
+  category: string;
 }
 
 interface AttendanceRecord {
   id: string;
   participant_id: string;
-  timestamp: string;
+  check_in: string;
+  check_out: string;
   participants: {
     full_name: string;
     email: string;
+    phone?: string;
     organization?: string;
+    category: string;
   };
 }
 
@@ -53,14 +57,17 @@ const Control = () => {
         .select(`
           id,
           participant_id,
-          timestamp,
+          check_in,
+          check_out,
           participants (
             full_name,
             email,
-            organization
+            phone,
+            organization,
+            category
           )
         `)
-        .order('timestamp', { ascending: false });
+        .order('check_in', { ascending: false });
 
       if (attendanceError) throw attendanceError;
 
@@ -123,28 +130,28 @@ const Control = () => {
 
   const exportParticipantsPDF = () => {
     const doc = new jsPDF();
-    
+
     doc.setFontSize(16);
     doc.text('Participantes del Evento', 20, 20);
-    
+
     let y = 40;
     doc.setFontSize(10);
-    
+
     participants.forEach((participant, index) => {
       if (y > 270) {
         doc.addPage();
         y = 20;
       }
-      
+
       doc.text(`${index + 1}. ${participant.full_name}`, 20, y);
       doc.text(`Email: ${participant.email}`, 30, y + 5);
       if (participant.phone) doc.text(`Teléfono: ${participant.phone}`, 30, y + 10);
       if (participant.organization) doc.text(`Organization: ${participant.organization}`, 30, y + 15);
       doc.text(`Registrado el: ${new Date(participant.created_at).toLocaleDateString()}`, 30, y + 20);
-      
+
       y += 30;
     });
-    
+
     doc.save('participantes.pdf');
   };
 
@@ -153,7 +160,8 @@ const Control = () => {
       'Participante': a.participants.full_name,
       'Email': a.participants.email,
       'Organization': a.participants.organization || '',
-      'Hora de Entrada': new Date(a.timestamp).toLocaleString()
+      'Hora de Entrada': new Date(a.check_in).toLocaleString(),
+      'Hora de Salida': new Date(a.check_out).toLocaleString()
     }));
 
     const ws = XLSX.utils.json_to_sheet(csvData);
@@ -167,7 +175,8 @@ const Control = () => {
       'Participante': a.participants.full_name,
       'Email': a.participants.email,
       'Organization': a.participants.organization || '',
-      'Hora de Entrada': new Date(a.timestamp).toLocaleString()
+      'Hora de Entrada': new Date(a.check_in).toLocaleString(),
+      'Hora de Salida': new Date(a.check_out).toLocaleString()
     }));
 
     const ws = XLSX.utils.json_to_sheet(excelData);
@@ -178,27 +187,28 @@ const Control = () => {
 
   const exportAttendancePDF = () => {
     const doc = new jsPDF();
-    
+
     doc.setFontSize(16);
     doc.text('Asistencia del evento', 20, 20);
-    
+
     let y = 40;
     doc.setFontSize(10);
-    
+
     attendance.forEach((record, index) => {
       if (y > 270) {
         doc.addPage();
         y = 20;
       }
-      
+
       doc.text(`${index + 1}. ${record.participants.full_name}`, 20, y);
       doc.text(`Email: ${record.participants.email}`, 30, y + 5);
       if (record.participants.organization) doc.text(`Organization: ${record.participants.organization}`, 30, y + 10);
-      doc.text(`Entrada: ${new Date(record.timestamp).toLocaleString()}`, 30, y + 15);
-      
+      doc.text(`Entrada: ${new Date(record.check_in).toLocaleString()}`, 30, y + 15);
+      doc.text(`Salida: ${new Date(record.check_out).toLocaleString()}`, 30, y + 15);
+
       y += 25;
     });
-    
+
     doc.save('asistencia.pdf');
   };
 
@@ -240,7 +250,7 @@ const Control = () => {
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Asistencia Total</CardTitle>
@@ -351,18 +361,28 @@ const Control = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Participante</TableHead>
+                    <TableHead>Institución</TableHead>
+                    <TableHead>Categoría</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Organization</TableHead>
-                    <TableHead>Hora de Entrada</TableHead>
+                    <TableHead>Teléfono</TableHead>
+                    <TableHead>Entrada</TableHead>
+                    <TableHead>Salida</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {attendance.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell className="font-medium">{record.participants.full_name}</TableCell>
-                      <TableCell>{record.participants.email}</TableCell>
                       <TableCell>{record.participants.organization || '-'}</TableCell>
-                      <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                      <TableCell>{record.participants.category || '-'}</TableCell>
+                      <TableCell>{record.participants.email}</TableCell>
+                      <TableCell>{record.participants.phone}</TableCell>
+                      <TableCell>{new Date(record.check_in).toLocaleString()}</TableCell>
+                      <TableCell>
+                        {record.check_out
+                          ? new Date(record.check_out).toLocaleString()
+                          : 'Sin salida'}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

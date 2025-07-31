@@ -132,6 +132,8 @@ const Scanner = () => {
     setIsProcessing(true);
     setScanSuccess(false);
 
+    let toastMessage = "";
+
     try {
       // Check if participant exists
       const { data: participant, error: participantError } = await supabase
@@ -147,77 +149,52 @@ const Scanner = () => {
           variant: "destructive",
         });
         setLastScanTime(now);
-        setIsProcessing(false);
         return;
       }
 
-      // Get more recent attendance record
-      const { data: latest, error: fetchError } = await supabase
-      .from('attendance')
-      .select('*')
-      .eq('participant_id', uuid)
-      .order('check_in', { ascending: false})
-      .limit(1)
-      .maybeSingle();
-
-      let toasMessage = "";
-
-      if (!latest) {
-        // No records -> Create record
-        const { error: insertError } = await supabase
+      // Get attendance record without check-out
+      const { data: latest } = await supabase
         .from('attendance')
-        .insert([
-          {
-            participant_id: uuid,
-          }
-        ]);
+        .select('*')
+        .eq('participant_id', uuid)
+        .is('check_out', null)
+        .limit(1);
+
+      if (latest && latest.length > 0) {
+        const { error: updateError } = await supabase
+          .from('attendance')
+          .update({ check_out: new Date().toISOString() })
+          .eq('id', latest[0].id);
+
+        if (updateError) {
+          console.error('Attendance error:', updateError);
+          toast({
+            title: "Error",
+            description: "Problema al registrar la salida. Por favor inténtelo de nuevo.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toastMessage = `La salida de ${participant.full_name} ha sido registrada.`;
+      } else {
+        const { error: insertError } = await supabase
+          .from('attendance')
+          .insert([
+            {
+              participant_id: uuid,
+            }
+          ]);
 
         if (insertError) {
           console.error('Attendance error:', insertError);
-        toast({
-          title: "Error",
-          description: "Problema al registrar la asistencia. Por favor inténtelo de nuevo.",
-          variant: "destructive",
-        });
-        setIsProcessing(false);
-        return;
+          toast({
+            title: "Error",
+            description: "Problema al registrar la asistencia. Por favor inténtelo de nuevo.",
+            variant: "destructive",
+          });
+          return;
         }
-        toasMessage = `La entrada de ${participant.full_name} ha sido registrada.`;
-      } else if (!latest.check_out) {
-        // There's check-in but not check-out -> record check-out
-        const { error: updateError } = await supabase
-        .from('attendance')
-        .update({ check_out: new Date().toISOString() })
-        .eq('id', latest.id);
-        if (updateError) {
-          console.error('Attendance error:', updateError);
-        toast({
-          title: "Error",
-          description: "Problema al registrar la salida. Por favor inténtelo de nuevo.",
-          variant: "destructive",
-        });
-        setIsProcessing(false);
-        return;
-        }
-        toasMessage = `La salida de ${participant.full_name} ha sido registrada.`;
-      } else {
-        const { error: newEntryError } = await supabase
-        .from('attendance')
-        .insert([
-          {
-            participant_id: uuid,
-          }
-        ]);
-        if (newEntryError) {
-          console.error('Attendance error:', newEntryError);
-        toast({
-          title: "Error",
-          description: "Problema al registrar la asistencia. Por favor inténtelo de nuevo.",
-          variant: "destructive",
-        });
-        setIsProcessing(false);
-        return;
-        }
+        toastMessage = `La entrada de ${participant.full_name} ha sido registrada.`;
       }
 
       // Update scan times
@@ -233,10 +210,8 @@ const Scanner = () => {
 
       toast({
         title: "¡Registro exitoso!",
-        description: `${toasMessage}`,
+        description: toastMessage,
       });
-
-      setIsProcessing(false);
 
     } catch (error) {
       console.error('Scan handling error:', error);
@@ -245,6 +220,7 @@ const Scanner = () => {
         description: "Un error ocurrio al procesar el escaneo.",
         variant: "destructive",
       });
+    } finally {
       setIsProcessing(false);
     }
   };
@@ -265,7 +241,7 @@ const Scanner = () => {
           <Link to="/control">
             <Button variant="outline" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Control
+              Ir al Panel de Control
             </Button>
           </Link>
           <h1 className="text-3xl font-bold text-primary">Escáner de Código QR</h1>

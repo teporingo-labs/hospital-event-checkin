@@ -299,7 +299,8 @@ const Control = () => {
                     <TableHead>Nombre</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Teléfono</TableHead>
-                    <TableHead>Organization</TableHead>
+                    <TableHead>Institución</TableHead>
+                    <TableHead>Categoría</TableHead>
                     <TableHead>Registrado</TableHead>
                     <TableHead>Código QR</TableHead>
                   </TableRow>
@@ -311,6 +312,7 @@ const Control = () => {
                       <TableCell>{participant.email}</TableCell>
                       <TableCell>{participant.phone || '-'}</TableCell>
                       <TableCell>{participant.organization || '-'}</TableCell>
+                      <TableCell>{participant.category || '-'}</TableCell>
                       <TableCell>{new Date(participant.created_at).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <Button

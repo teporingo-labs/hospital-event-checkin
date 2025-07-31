@@ -9,8 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import QRCode from 'qrcode';
 import seguridad from '@/assets/DiaMundialSeguridadPaciente.jpg';
 import chmh from '@/assets/CHMHGigante2025.png'
-import { Select, SelectContent, SelectItem, SelectValue } from '@radix-ui/react-select';
-import { SelectTrigger } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectValue, SelectTrigger } from '@/components/ui/select';
+import { Console } from 'console';
 
 interface RegistrationForm {
   fullName: string;
@@ -30,7 +30,7 @@ const categories = [
 ]
 
 const Registration = () => {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<RegistrationForm>();
+  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<RegistrationForm>();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
@@ -52,6 +52,34 @@ const Registration = () => {
         }
       });
 
+      // 2. Convertir a archivo tipo File
+    const base64Data = qrCodeDataUrl.split(',')[1]; // quitar 'data:image/png;base64,'
+    const byteCharacters = atob(base64Data);
+    const byteArray = new Uint8Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArray[i] = byteCharacters.charCodeAt(i);
+    }
+    const file = new File([byteArray], `${participantId}.png`, { type: 'image/png' });
+
+    // 3. Subir a Supabase Storage
+    const filePath = `${participantId}.png`;
+    const { error: uploadError } = await supabase.storage
+      .from('qr-codes')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      console.error('Error al subir QR a Storage:', uploadError);
+      throw new Error('No se pudo subir el código QR al servidor.');
+    }
+
+    // 4. Obtener URL pública
+    const { data: urlData } = supabase.storage
+      .from('qr-codes')
+      .getPublicUrl(filePath);
+
+    const publicQrUrl = urlData.publicUrl;
+
+
       // Store participant data in Supabase
       const { data: participant, error } = await supabase
         .from('participants')
@@ -63,7 +91,7 @@ const Registration = () => {
             phone: data.phone || null,
             organization: data.organization || null,
             qr_code: qrCodeDataUrl,
-            category: data.category,
+            category: data.category,            
           }
         ])
         .select()
@@ -74,14 +102,17 @@ const Registration = () => {
         throw new Error('Error al guardar los datos de registro.');
       }
 
+      
       // Send QR code via email
       const emailResponse = await supabase.functions.invoke('send-qr-email', {
         body: {
           email: data.email,
           fullName: data.fullName,
-          qrCodeDataUrl: qrCodeDataUrl,
+          qrCodeDataUrl: publicQrUrl,
         }
       });
+
+      
 
       if (emailResponse.error) {
         console.error('Email error:', emailResponse.error);
@@ -225,7 +256,9 @@ const Registration = () => {
               <Label htmlFor="phone">Teléfono</Label>
               <Input
                 id="phone"
-                {...register('phone')}
+                {...register('phone', {
+                  required: 'El número de teléfono es obligatorio'
+                })}
                 placeholder="Ingresa tu número de teléfono"
               />
             </div>
@@ -234,9 +267,25 @@ const Registration = () => {
               <Label htmlFor="organization">Institución</Label>
               <Input
                 id="organization"
-                {...register('organization')}
+                {...register('organization', {
+                  required: 'La institución de procedencia es obligatoria'
+                })}
                 placeholder="Ingresa tu institución de procedencia"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Categoría</Label>
+              <Select onValueChange={(value) => setValue("category", value)}>
+                <SelectTrigger className="data-[placeholder]:text-muted-foreground">
+                  <SelectValue placeholder="Selecciona una categoría" />
+                </SelectTrigger>
+                <SelectContent className="bg-white max-h-60 overflow-y-auto border border-border shadow-md rounded-md">
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <Button type="submit" disabled={isLoading} className="w-full">
